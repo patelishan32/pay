@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Open UPI payment</title>
+<style>
+  :root { --bg:#fff; --fg:#1b1b1f; --muted:#666; --card:#f3f4f7; --btn:#2f6fed; --btnfg:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#121214; --fg:#f1f1f3; --muted:#a0a0a8; --card:#1e1e22; --btn:#5b8cff; --btnfg:#0b1020; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px 16px; background:var(--bg); color:var(--fg); font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:420px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p { color:var(--muted); margin:6px 0 18px; }
+  .amt { font-size:34px; font-weight:700; margin:8px 0 2px; }
+  a.b, button.b { display:block; width:100%; margin:10px 0; padding:14px; border:0; border-radius:12px; text-align:center;
+    background:var(--btn); color:var(--btnfg); font:600 16px system-ui,sans-serif; text-decoration:none; }
+  a.b.alt, button.b.alt { background:var(--card); color:var(--fg); }
+  code { display:block; word-break:break-all; background:var(--card); padding:10px; border-radius:10px; font-size:12px; margin-top:10px; }
+  .hide { display:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>UPI payment</h1>
+  <div class="amt" id="amt"></div>
+  <p id="msg">Opening your UPI app…</p>
+  <div id="buttons" class="hide">
+    <a class="b" id="any" href="#">Open in my UPI app</a>
+    <a class="b alt" id="gpay" href="#">Google Pay</a>
+    <a class="b alt" id="phonepe" href="#">PhonePe</a>
+    <a class="b alt" id="paytm" href="#">Paytm</a>
+    <button class="b alt" id="copy" type="button">Copy payment link</button>
+    <code id="raw"></code>
+  </div>
+</main>
+<script>
+(function () {
+  // The payment link travels in the part after '#', which browsers never send to any server.
+  var raw = "";
+  try { raw = decodeURIComponent(location.hash.slice(1)); } catch (e) {}
+  var msg = document.getElementById("msg");
+
+  // Only genuine UPI payment links are accepted (never javascript:, http:, etc.)
+  if (raw.indexOf("upi://pay?") !== 0) {
+    msg.textContent = "No valid UPI payment link in this address.";
+    return;
+  }
+  var query = raw.slice("upi://pay?".length);
+  var params = new URLSearchParams(query);
+  if (params.get("am")) document.getElementById("amt").textContent = "\u20B9" + params.get("am");
+
+  function set(id, href) { document.getElementById(id).href = href; }
+  set("any", raw);
+  set("gpay", "tez://upi/pay?" + query);
+  set("phonepe", "phonepe://pay?" + query);
+  set("paytm", "paytmmp://pay?" + query);
+  document.getElementById("raw").textContent = raw;
+  document.getElementById("buttons").className = "";
+  msg.textContent = "If your UPI app did not open by itself, tap a button. This is the 10-minute QR payment for your FirstCry order.";
+
+  document.getElementById("copy").onclick = function () {
+    var done = function () { document.getElementById("copy").textContent = "Copied"; };
+    if (navigator.clipboard) navigator.clipboard.writeText(raw).then(done, function () {});
+    else { var t = document.createElement("textarea"); t.value = raw; document.body.appendChild(t); t.select(); try { document.execCommand("copy"); done(); } catch (e) {} t.remove(); }
+  };
+
+  // try to open the app straight away (works on most phones; the buttons are the fallback)
+  setTimeout(function () { location.href = raw; }, 300);
+})();
+</script>
+</body>
+</html>
